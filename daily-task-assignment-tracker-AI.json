@@ -1,0 +1,1025 @@
+{
+  "name": "daily-task-assignment-tracker-AI",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Usually triggered once per assignment → we expect one item\nconst triggerItem = $input.first();\nif (!triggerItem) {\n  return [{ json: { error: \"No input item received\" } }];\n}\n\n// Helper: safe date formatting (PKT = Asia/Karachi)\nfunction formatPktDate(timestampMs) {\n  if (!timestampMs || isNaN(Number(timestampMs))) return \"N/A\";\n  const date = new Date(Number(timestampMs));\n  return date.toLocaleString('en-US', {\n    timeZone: 'Asia/Karachi',\n    year: 'numeric',\n    month: 'short',\n    day: 'numeric',\n    hour: '2-digit',\n    minute: '2-digit',\n    hour12: true\n  });\n}\n\n// ── Get task data ── preferably from \"Get a task\" node that uses task_id ──\nconst taskItem = $('Get a task1').first();\n\nif (!taskItem?.json?.name) {\n  // Fallback: try to use data directly from trigger if \"Get a task\" failed/empty\n  const fallbackName = triggerItem.json.name || triggerItem.json.task?.name || \"Unnamed Task\";\n  const fallbackStart  = triggerItem.json.start_date  || triggerItem.json.task?.start_date;\n  const fallbackDue    = triggerItem.json.due_date    || triggerItem.json.task?.due_date;\n  const fallbackCreated = triggerItem.json.date_created || triggerItem.json.task?.date_created;\n\n  var name       = fallbackName.trim();\n  var startFmt   = formatPktDate(fallbackStart);\n  var endFmt     = formatPktDate(fallbackDue);\n  var createdFmt = formatPktDate(fallbackCreated);\n} else {\n  // Preferred path: data from \"Get a task\" node\n  var name       = (taskItem.json.name || \"Unnamed Task\").trim();\n  var startFmt   = formatPktDate(taskItem.json.start_date);\n  var endFmt     = formatPktDate(taskItem.json.due_date);\n  var createdFmt = formatPktDate(taskItem.json.date_created);\n}\n\n// ── Build single task line ───────────────────────────────────────────\nconst taskLine = `• ${name}\\n   Created: ${createdFmt}\\n   Start:   ${startFmt}\\n   End:     ${endFmt}`;\n\nconst formattedTasks = taskLine;\n\n\n// ── Get member info (usually prepared in \"Edit Fields1\") ─────────────\nconst memberName = $('Edit Fields4').first()?.json?.[' Member Name'] \n                || $('Edit Fields4').first()?.json?.MemberName \n                || triggerItem.json.assignee?.username\n                || triggerItem.json.history_items?.[0]?.after?.username\n                || \"—\";\n\nconst memberId = $('Edit Fields4').first()?.json?.[' Member ID'] \n              || $('Edit Fields4').first()?.json?.MemberId \n              || triggerItem.json.assignee?.id\n              || triggerItem.json.history_items?.[0]?.after?.id\n              || \"—\";\n\n// Date context\nconst todayDate = $input.first().json.formattedDate \n               || triggerItem.json.formattedDate \n               || new Date().toISOString().split('T')[0];\n\nconst uniqueKey = `${memberId}_${todayDate}`.trim();\n \nconst taskCount = [taskLine].length;\n// ── Final output ─────────────────────────────────────────────────────\nreturn [{\n  json: {\n    MemberName:       memberName,\n    MemberId:         memberId,\n    TodayDate:        todayDate,\n    unique_key:       uniqueKey,\n\n    AssignedTasks:    formattedTasks,        // single formatted string\n    AssignedTaskCount: taskCount,\n    // AssignedTasksArray: [taskLine],          // still array → easier to append later\n\n    // Optional – very useful for debugging\n    // TaskName:         name,\n    // CreatedFmt:       createdFmt,\n    // StartFmt:         startFmt,\n    // DueFmt:           endFmt,\n    // SourceNodeUsed:   taskItem?.json?.name ? \"Get a task\" : \"trigger fallback\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        128
+      ],
+      "id": "9bda5e96-ef18-487e-9820-f53fd2d4d082",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        -1216,
+        128
+      ],
+      "id": "7f9e6e47-9b0a-416e-91ad-13da0c23ce3a",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $json.currentDate }}",
+        "format": "custom",
+        "customFormat": "dd/MM/yyyy",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        -992,
+        128
+      ],
+      "id": "941d3df0-8d20-4929-a843-5e305667b711",
+      "name": "Date & Time3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1cca6822-e859-4bcd-a030-5e055d7310d9",
+              "name": " Member Name",
+              "value": "={{ $json.assignees[0].username }}",
+              "type": "string"
+            },
+            {
+              "id": "ff32a537-8657-49ee-826b-9c3f8639fff7",
+              "name": " Member ID",
+              "value": "={{ $json.assignees[0].id }} ",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1440,
+        128
+      ],
+      "id": "b1892470-fd91-4d90-905f-9f96e4d6d3ad",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "id": "={{ $json.task_id }}",
+        "includeSubtasks": true
+      },
+      "type": "n8n-nodes-base.clickUp",
+      "typeVersion": 1,
+      "position": [
+        -1664,
+        128
+      ],
+      "id": "698e8895-02e5-49ee-b610-617b9d544242",
+      "name": "Get a task1",
+      "credentials": {
+        "clickUpApi": {
+          "id": "FGZ36444ame9ffAE",
+          "name": "ClickUp account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8",
+          "mode": "list",
+          "cachedResultName": "Web Team n8n Reports",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1541158572,
+          "mode": "list",
+          "cachedResultName": "DailyLogsData",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit#gid=1541158572"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "        unique_key": "={{ $('Code in JavaScript').item.json.unique_key }}",
+            "Date": "={{ $('Code in JavaScript').item.json.TodayDate }} ",
+            "Member ID": "={{ $('Code in JavaScript').item.json.MemberId }} ",
+            "Member Name": "={{ $('Code in JavaScript').item.json.MemberName }} ",
+            "Tasks Assigned Today": "={{ $('Code in JavaScript').item.json.AssignedTasks }} ",
+            "No_of_Assigned_Tasks": "={{ $('Code in JavaScript').item.json.AssignedTaskCount }}"
+          },
+          "matchingColumns": [
+            "        unique_key"
+          ],
+          "schema": [
+            {
+              "id": "        unique_key",
+              "displayName": "        unique_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Member ID",
+              "displayName": "Member ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Member Name",
+              "displayName": "Member Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " Productive Days",
+              "displayName": " Productive Days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Projects",
+              "displayName": "Projects",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Projects_Working_On",
+              "displayName": "No_of_Projects_Working_On",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tasks Assigned Today",
+              "displayName": "Tasks Assigned Today",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Assigned_Tasks",
+              "displayName": "No_of_Assigned_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pending Tasks",
+              "displayName": "Pending Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Pending_Tasks",
+              "displayName": "No_of_Pending_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "In-Progress Tasks",
+              "displayName": "In-Progress Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_In-Progress_Tasks",
+              "displayName": "No_of_In-Progress_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Active Tasks",
+              "displayName": "Active Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Active_Tasks",
+              "displayName": "No_of_Active_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Repeted Tasks",
+              "displayName": "Repeted Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "No_of_Repeted_Tasks",
+              "displayName": "No_of_Repeted_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Completed Tasks",
+              "displayName": "Completed Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Completed_Tasks",
+              "displayName": "No_of_Completed_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "In-Testing Tasks",
+              "displayName": "In-Testing Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_InTesting_Tasks",
+              "displayName": "No_of_InTesting_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TeamName",
+              "displayName": "TeamName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ReportMonth",
+              "displayName": "ReportMonth",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128,
+        32
+      ],
+      "id": "630ed7e6-8d76-46d7-bded-17983473580c",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "fnSCdUg3fhYq3oJ4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8",
+          "mode": "list",
+          "cachedResultName": "Web Team n8n Reports",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1541158572,
+          "mode": "list",
+          "cachedResultName": "DailyLogsData",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit#gid=1541158572"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "        unique_key",
+              "lookupValue": "={{ $json.unique_key }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -320,
+        128
+      ],
+      "id": "e9cc62a6-2e0b-4d7a-b8d5-1f6f2afccce6",
+      "name": "Get row(s) in sheet1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "fnSCdUg3fhYq3oJ4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5306ffcf-c89c-4e04-880f-c014b1ebdee2",
+              "leftValue": "={{ Object.keys($json).length === 0 }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -96,
+        128
+      ],
+      "id": "0b9bc138-e9cd-407a-b981-f1f728027802",
+      "name": "If entry is 1st time1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2bdc5bd7-1567-4a7f-8e20-f3345e8d2bdc",
+              "name": "oldTasks",
+              "value": "={{ $('Get row(s) in sheet1').item.json['Tasks Assigned Today'] }}",
+              "type": "string"
+            },
+            {
+              "id": "ea646ebb-99ee-4dd8-9457-60986e0e9d1e",
+              "name": "newTasks",
+              "value": "={{ $('Edit Fields7').item.json.AssignedTasks }}",
+              "type": "string"
+            },
+            {
+              "id": "40e0e296-3985-4535-b32b-17452c4db037",
+              "name": "No_of_Assigned_Tasks",
+              "value": "={{ $('Get row(s) in sheet1').item.json.No_of_Assigned_Tasks + 1 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        128,
+        224
+      ],
+      "id": "753c9934-991d-498f-8c94-22ac983b52a0",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "858640ac-7ecf-4f32-b670-d3eb224329a0",
+              "name": "AssignedTasks",
+              "value": "={{ $('Code in JavaScript').item.json.AssignedTasks }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -544,
+        128
+      ],
+      "id": "6bf1e0ac-b466-45cd-a7c3-a55ad78e7710",
+      "name": "Edit Fields7"
+    },
+    {
+      "parameters": {
+        "team": "90181787093",
+        "events": [
+          "taskAssigneeUpdated"
+        ],
+        "filters": {
+          "listId": "901812001221",
+          "spaceId": "90187174200"
+        }
+      },
+      "type": "n8n-nodes-base.clickUpTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1888,
+        128
+      ],
+      "id": "b5b9a94d-fec5-45f6-b05c-5f58611293d8",
+      "name": "ClickUp Trigger",
+      "webhookId": "f9c75af9-9884-46f7-9869-e6839f8913c2",
+      "credentials": {
+        "clickUpApi": {
+          "id": "FGZ36444ame9ffAE",
+          "name": "ClickUp account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f84546ec-4a60-496e-af44-0381cac48f37",
+              "leftValue": "={{ $json.shouldAppend }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        576,
+        224
+      ],
+      "id": "8e1c6f73-4ac7-4650-ab6f-2626ecb97546",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ece99218-98c9-4bb2-ae7f-0e75663ad658",
+              "name": "combinedTasks",
+              "value": "={{ $json.newTasks ? $json.newTasks + \"\\n \" + $json.oldTasks : + $json.oldTasks }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        224
+      ],
+      "id": "e30133f1-94af-4f65-a58d-dc647f6b9d3d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================\n//   Check if the new completed task is already in oldTasks\n// ================================================\n\nconst oldText   = ($input.first().json.oldTasks  || \"\").trim();\nconst newTask   = ($input.first().json.newTasks  || \"\").trim();\n\nif (!newTask) {\n  return [{\n    json: {\n      ...$json,\n      alreadyExists: false,\n      reason: \"No new task provided\",\n      shouldAppend: true\n    }\n  }];\n}\n\nif (!oldText) {\n  return [{\n    json: {\n      ...$json,\n      alreadyExists: false,\n      reason: \"No previous tasks → first entry\",\n      shouldAppend: true\n    }\n  }];\n}\n\n// Normalize both strings a bit (remove extra spaces, normalize line endings)\nconst normalize = str => str\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .toLowerCase();\n\n// We will check two ways:\n// 1. Exact full-string match of the new task block\n// 2. Contains the task name / bullet part (more forgiving)\n\nconst normalizedOld  = normalize(oldText);\nconst normalizedNew  = normalize(newTask);\n\n// ── Method 1: exact match of the whole new task block ────────────────\nconst alreadyExact = normalizedOld.includes(normalizedNew);\n\n// ── Method 2: extract likely task title (first line after •) ─────────\nlet newTitle = \"\";\nif (newTask.startsWith(\"•\")) {\n  newTitle = newTask.split(\"\\n\")[0].trim().toLowerCase();\n} else {\n  // fallback: take first non-empty line\n  newTitle = newTask.split(\"\\n\").find(l => l.trim())[0]?.trim().toLowerCase() || \"\";\n}\n\nlet hasSimilarTitle = false;\nif (newTitle) {\n  hasSimilarTitle = oldText\n    .split(\"\\n\")\n    .some(line => {\n      const trimmed = line.trim().toLowerCase();\n      return trimmed.startsWith(\"•\") && trimmed.includes(newTitle);\n    });\n}\n\n// Final decision\nconst alreadyExists = alreadyExact || hasSimilarTitle;\n\nreturn [{\n  json: {\n    ...$json,\n    // alreadyExists: alreadyExists,\n    shouldAppend: !alreadyExists,\n    // reason: alreadyExists\n    //   ? \"Task already exists in Completed Tasks\"\n    //   : \"New task – safe to append\",\n    // newTaskTitle: newTitle || \"(no title detected)\",\n    // debug_normalizedNew: normalizedNew.substring(0, 100) + \"...\",\n    // debug_normalizedOldLength: normalizedOld.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        224
+      ],
+      "id": "5e0dded1-9d1d-49ea-81dc-9ec015bbe46a",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8",
+          "mode": "list",
+          "cachedResultName": "Web Team n8n Reports",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1541158572,
+          "mode": "list",
+          "cachedResultName": "DailyLogsData",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit#gid=1541158572"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "        unique_key": "={{ $('Code in JavaScript').item.json.unique_key }}",
+            "Date": "={{ $('Code in JavaScript').item.json.TodayDate }} ",
+            "Member ID": "={{ $('Code in JavaScript').item.json.MemberId }} ",
+            "Member Name": "={{ $('Code in JavaScript').item.json.MemberName }} ",
+            "Tasks Assigned Today": "={{ $json.combinedTasks }}",
+            "No_of_Assigned_Tasks": "={{ $json.No_of_Assigned_Tasks }}"
+          },
+          "matchingColumns": [
+            "        unique_key"
+          ],
+          "schema": [
+            {
+              "id": "        unique_key",
+              "displayName": "        unique_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Member ID",
+              "displayName": "Member ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Member Name",
+              "displayName": "Member Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": " Productive Days",
+              "displayName": " Productive Days",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Projects",
+              "displayName": "Projects",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Projects_Working_On",
+              "displayName": "No_of_Projects_Working_On",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tasks Assigned Today",
+              "displayName": "Tasks Assigned Today",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Assigned_Tasks",
+              "displayName": "No_of_Assigned_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pending Tasks",
+              "displayName": "Pending Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Pending_Tasks",
+              "displayName": "No_of_Pending_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "In-Progress Tasks",
+              "displayName": "In-Progress Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_In-Progress_Tasks",
+              "displayName": "No_of_In-Progress_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Active Tasks",
+              "displayName": "Active Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Active_Tasks",
+              "displayName": "No_of_Active_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Repeted Tasks",
+              "displayName": "Repeted Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "No_of_Repeted_Tasks",
+              "displayName": "No_of_Repeted_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Completed Tasks",
+              "displayName": "Completed Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_Completed_Tasks",
+              "displayName": "No_of_Completed_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "In-Testing Tasks",
+              "displayName": "In-Testing Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "No_of_InTesting_Tasks",
+              "displayName": "No_of_InTesting_Tasks",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TeamName",
+              "displayName": "TeamName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ReportMonth",
+              "displayName": "ReportMonth",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1024,
+        224
+      ],
+      "id": "5986a3b1-8ca4-41d3-bdf5-8f13c058d9c4",
+      "name": "Append or update row in sheet8",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "fnSCdUg3fhYq3oJ4",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "Date & Time3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a task1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "If entry is 1st time1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If entry is 1st time1": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields7": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ClickUp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a task1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "164e19fe-ef30-42fe-a046-f626970ca914",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bfefda8b8561e999840c4adfac23e386ed9e4cb2425c2372729c1876c847c669"
+  },
+  "id": "0vvKwEuPFPMgQnsv",
+  "tags": []
+}
