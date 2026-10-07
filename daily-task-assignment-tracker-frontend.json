@@ -3,13 +3,13 @@
   "nodes": [
     {
       "parameters": {
-        "team": "90181787093",
+        "team": "{{CLICKUP_TEAM_ID}}",
         "events": [
           "taskAssigneeUpdated"
         ],
         "filters": {
-          "listId": "901812347933",
-          "spaceId": "90186999301"
+          "listId": "{{CLICKUP_LIST_ID_3}}",
+          "spaceId": "{{CLICKUP_SPACE_ID_2}}"
         }
       },
       "type": "n8n-nodes-base.clickUpTrigger",
@@ -126,17 +126,17 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8",
+          "value": "{{GOOGLE_SHEET_ID}}",
           "mode": "list",
           "cachedResultName": "Web Team n8n Reports",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit?usp=drivesdk"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": 1541158572,
           "mode": "list",
           "cachedResultName": "DailyLogsData",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit#gid=1541158572"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit#gid=1541158572"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -389,17 +389,17 @@
       "parameters": {
         "documentId": {
           "__rl": true,
-          "value": "1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8",
+          "value": "{{GOOGLE_SHEET_ID}}",
           "mode": "list",
           "cachedResultName": "Web Team n8n Reports",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit?usp=drivesdk"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": 1541158572,
           "mode": "list",
           "cachedResultName": "DailyLogsData",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit#gid=1541158572"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit#gid=1541158572"
         },
         "filtersUI": {
           "values": [
@@ -502,17 +502,17 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8",
+          "value": "{{GOOGLE_SHEET_ID}}",
           "mode": "list",
           "cachedResultName": "Web Team n8n Reports",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit?usp=drivesdk"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": 1541158572,
           "mode": "list",
           "cachedResultName": "DailyLogsData",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1gSjiaV900li7-5NIU1SpiYfI3ZJK15H1oB3JuOXhcs8/edit#gid=1541158572"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/{{GOOGLE_SHEET_ID}}/edit#gid=1541158572"
         },
         "columns": {
           "mappingMode": "defineBelow",
